@@ -1,0 +1,29 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 24,
+    "spacing": 4,
+    "modules-left": [
+        "niri/workspaces"
+    ],
+    "niri/workspaces": {
+        "format": "{index}"
+    },
+    "modules-center": [
+        "wlr/taskbar"
+    ],
+    "modules-right": [
+        "clock"
+    ],
+    "wlr/taskbar": {
+        "on-click": "activate",
+        "on-click-middle": "close",
+        "ignore-list": [
+            "foot"
+        ]
+    },
+    "clock": {
+        "format": "{:%H:%M}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    }
+}
