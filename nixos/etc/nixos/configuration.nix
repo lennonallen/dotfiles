@@ -154,7 +154,6 @@
     "..." = "cd ../..";
     "...." = "cd ../../..";
     c = "clear";
-    task = " todoist q $1";
     home = "cd && clear";
     switch = "sudo nixos-rebuild switch";
     test-config = "sudo nixos-rebuild test";
