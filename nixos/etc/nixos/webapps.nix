@@ -1,0 +1,91 @@
+{ config, pkgs, lib, ... }:
+
+{
+  environment.systemPackages = with pkgs; [
+    (makeDesktopItem {
+      name = "gmail";
+      desktopName = "Gmail";
+      comment = "Access Gmail in a standalone web application";
+      exec = "chromium --app=\"https://mail.google.com/mail/u/0/#inbox\" --class=Gmail";
+      icon = "mail-unread";
+      terminal = false;
+      categories = [ "Network" ];
+      startupWMClass = "Gmail";
+      mimeTypes = [ "x-scheme-handler/mailto" ];
+      startupNotify = true;
+    })
+
+    (makeDesktopItem {
+      name = "github-profile";
+      desktopName = "Lennon Allen GitHub";
+      comment = "Open Lennon Allen's GitHub profile in Chromium";
+      exec = "chromium --app=https://github.com/lennonallen";
+      icon = "web-browser";
+      terminal = false;
+      categories = [ "Network" ];
+      startupNotify = true;
+    })
+
+    (makeDesktopItem {
+      name = "onepassword";
+      desktopName = "1Password";
+      comment = "1Password Password Manager Web Application";
+      exec = "chromium --app=\"https://my.1password.com/app#/UFYV7IJYJBAADH7QZ6X4UAIXAA/AllItems\" --new-window --class=1Password";
+      icon = "chromium";
+      terminal = false;
+      categories = [ "Office" ];
+      startupWMClass = "1Password";
+      startupNotify = true;
+      mimeTypes = [ "x-scheme-handler/onepassword" ];
+    })
+
+    (makeDesktopItem {
+      name = "icloud-mail";
+      desktopName = "iCloud Mail";
+      comment = "Access Apple iCloud Mail through web browser";
+      exec = "chromium --app=https://www.icloud.com/mail/ --new-window";
+      icon = "mail-app";
+      terminal = false;
+      categories = [ "Network" ];
+      startupWMClass = "www.icloud.com__mail_";
+      startupNotify = true;
+      mimeTypes = [ "x-scheme-handler/mailto" ];
+    })
+
+    (makeDesktopItem {
+      name = "nixos-server-homarr";
+      desktopName = "nixos-server-homarr";
+      comment = "nixos-server-homarr Dashboard Web Application";
+      exec = "chromium --app=http://192.168.4.100:7575";
+      icon = "chromium";
+      terminal = false;
+      categories = [ "Network" ];
+      startupWMClass = "192.168.4.100__7575";
+      startupNotify = true;
+    })
+
+    (makeDesktopItem {
+      name = "discord";
+      desktopName = "Discord";
+      comment = "Access Discord in a standalone web application";
+      exec = "chromium --app=https://discord.com/app --class=Discord";
+      icon = "discord";
+      terminal = false;
+      categories = [ "Network" ];
+      startupWMClass = "Discord";
+      startupNotify = true;
+    })
+
+    (makeDesktopItem {
+      name = "claude";
+      desktopName = "Claude";
+      comment = "Access Claude in a standalone web application";
+      exec = "chromium --app=https://claude.ai/new --class=Claude";
+      icon = "chromium";
+      terminal = false;
+      categories = [ "Network" ];
+      startupWMClass = "Claude";
+      startupNotify = true;
+    })
+  ];
+}

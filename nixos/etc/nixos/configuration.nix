@@ -12,6 +12,9 @@
       /etc/nixos/standardnotes.nix
       /etc/nixos/syncthing.nix
       /etc/nixos/yubikey_ssh_module.nix
+      /etc/nixos/chromium.nix
+      /etc/nixos/kitty.nix
+      /etc/nixos/webapps.nix
     ];
 
   # Bootloader.
@@ -177,7 +180,6 @@
     claude-code
     lazygit
     lazydocker
-    chromium
     ranger
     niri                     # Niri window manager
     
@@ -207,6 +209,7 @@
     todoist
     stow    
     tree
+    btop
   ];
 
   virtualisation.docker.enable = true;

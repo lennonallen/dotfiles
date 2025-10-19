@@ -197,7 +197,6 @@ layout {
 // This line starts waybar, a commonly used bar for Wayland compositors.
 spawn-at-startup "waybar"
 spawn-at-startup "hyprpaper"
-spawn-at-startup "start-swayidle"
 
 // To run a shell command (with variables, pipes, etc.), use spawn-sh-at-startup:
 // spawn-sh-at-startup "qs -c ~/source/qs/MyAwesomeShell"
@@ -272,6 +271,7 @@ window-rule {
     // block-out-from "screencast"
 }
 
+
 window-rule {
     geometry-corner-radius 8
     clip-to-geometry true
@@ -297,8 +297,7 @@ binds {
     // Suggested binds for running programs: terminal, app launcher, screen locker.
     Mod+Return hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
     Mod+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
-    Super+Alt+L hotkey-overlay-title="Lock the Screen: swaylock" { spawn "swaylock"; }
-    Super+b hotkey-overlay-title="Open a Browser: firefox" { spawn "firefox"; }
+    Super+b hotkey-overlay-title="Open a Browser: chromium" { spawn "chromium"; }
     Super+d hotkey-overlay-title="Open lazydocker: kitty -e lazydocker" { spawn "kitty" "-e" "lazydocker"; }
     Super+g hotkey-overlay-title="Open GitHub Profile" { spawn "chromium" "--app=https://github.com/lennonallen"; }
     // Use spawn-sh to run a shell command. Do this if you need pipes, multiple commands, etc.

@@ -1,0 +1,388 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# NixOS WebApp Manager - Bash Version
+# Add new web applications to webapps.nix module
+
+WEBAPPS_FILE="/home/lennon/dotfiles/nixos/etc/nixos/webapps.nix"
+
+# Default values
+DEFAULT_ICON="chromium"
+DEFAULT_CATEGORIES="Network"
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+usage() {
+    echo "NixOS WebApp Manager"
+    echo "Usage: $0 <display_name> <url> [options]"
+    echo ""
+    echo "Options:"
+    echo "  --icon=<icon>           Icon name (default: chromium)"
+    echo "  --categories=<cat1,cat2> Categories (default: Network)"
+    echo "  --comment=<comment>     Custom comment"
+    echo "  --class=<class>         Startup WM Class"
+    echo "  --flags=<flag1,flag2>   Extra chromium flags"
+    echo "  --mime=<type1,type2>    MIME types"
+    echo "  --write                 Write directly to webapps.nix"
+    echo "  --help                  Show this help"
+    echo ""
+    echo "Examples:"
+    echo "  $0 'Gmail' 'https://mail.google.com'"
+    echo "  $0 'YouTube Music' 'https://music.youtube.com' --icon=multimedia-audio-player --categories=AudioVideo"
+    echo "  $0 'Company Dashboard' 'https://dashboard.company.com' --icon=preferences-system --categories=System,Office --write"
+}
+
+# Function to generate name from display name
+generate_name() {
+    local display_name="$1"
+    echo "$display_name" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9 -]//g' | tr ' ' '-' | sed 's/--*/-/g' | sed 's/^-\|-$//g'
+}
+
+# Function to suggest defaults based on URL
+suggest_defaults() {
+    local url="$1"
+    local icon="$DEFAULT_ICON"
+    local categories="$DEFAULT_CATEGORIES"
+    local mime_types=""
+    
+    case "$url" in
+        *mail.google.com*|*gmail.com*)
+            icon="mail-unread"
+            categories="Network"
+            mime_types="x-scheme-handler/mailto"
+            ;;
+        *mail.proton.me*|*protonmail.com*)
+            icon="mail-unread"
+            categories="Network"
+            mime_types="x-scheme-handler/mailto"
+            ;;
+        *outlook.live.com*|*outlook.com*)
+            icon="mail-unread"
+            categories="Network"
+            mime_types="x-scheme-handler/mailto"
+            ;;
+        *icloud.com/mail*)
+            icon="mail-app"
+            categories="Network"
+            mime_types="x-scheme-handler/mailto"
+            ;;
+        *music.youtube.com*)
+            icon="multimedia-audio-player"
+            categories="AudioVideo"
+            ;;
+        *open.spotify.com*)
+            icon="spotify"
+            categories="AudioVideo"
+            ;;
+        *github.com*)
+            icon="web-browser"
+            categories="Development"
+            ;;
+        *gitlab.com*)
+            icon="web-browser"
+            categories="Development"
+            ;;
+        *docs.google.com*)
+            icon="x-office-document"
+            categories="Office"
+            ;;
+        *discord.com*)
+            icon="discord"
+            categories="Network"
+            ;;
+        *web.whatsapp.com*)
+            icon="whatsapp"
+            categories="Network"
+            ;;
+        *teams.microsoft.com*)
+            icon="teams"
+            categories="Network Office"
+            ;;
+        *slack.com*)
+            icon="slack"
+            categories="Network Office"
+            ;;
+        *dashboard*|*admin*|*panel*)
+            icon="preferences-system"
+            categories="System"
+            ;;
+        *mail*|*email*)
+            icon="mail-unread"
+            categories="Network"
+            mime_types="x-scheme-handler/mailto"
+            ;;
+        *music*|*audio*)
+            icon="multimedia-audio-player"
+            categories="AudioVideo"
+            ;;
+        *docs*|*office*|*document*)
+            icon="x-office-document"
+            categories="Office"
+            ;;
+        *chat*)
+            icon="internet-chat"
+            categories="Network"
+            ;;
+    esac
+    
+    echo "$icon|$categories|$mime_types"
+}
+
+# Function to check if URL needs quoting
+needs_quoting() {
+    local url="$1"
+    [[ "$url" == *"#"* ]] || [[ "$url" == *'"'* ]] || [[ "$url" == *"'"* ]] || [[ "$url" == *" "* ]]
+}
+
+# Function to format exec command
+format_exec_command() {
+    local url="$1"
+    local extra_flags="$2"
+    local class_name="$3"
+    
+    local cmd="chromium"
+    
+    if needs_quoting "$url"; then
+        cmd+=" --app=\"$url\""
+    else
+        cmd+=" --app=$url"
+    fi
+    
+    if [[ -n "$class_name" ]]; then
+        cmd+=" --class=$class_name"
+    fi
+    
+    if [[ -n "$extra_flags" ]]; then
+        # Convert comma-separated flags to space-separated
+        local flags_formatted
+        flags_formatted=$(echo "$extra_flags" | tr ',' ' ')
+        cmd+=" $flags_formatted"
+    fi
+    
+    echo "$cmd"
+}
+
+# Function to generate desktop item
+generate_desktop_item() {
+    local name="$1"
+    local display_name="$2"
+    local url="$3"
+    local icon="$4"
+    local categories="$5"
+    local comment="$6"
+    local exec_cmd="$7"
+    local class_name="$8"
+    local mime_types="$9"
+    
+    # Format categories array
+    local categories_array=""
+    if [[ -n "$categories" ]]; then
+        # Convert space/comma-separated to quoted array
+        categories_array=$(echo "$categories" | tr ',' ' ' | sed 's/\([^ ]*\)/"\1"/g' | tr '\n' ' ')
+    fi
+    
+    # Format MIME types array
+    local mime_array=""
+    if [[ -n "$mime_types" ]]; then
+        mime_array=$(echo "$mime_types" | tr ',' ' ' | sed 's/\([^ ]*\)/"\1"/g' | tr '\n' ' ')
+    fi
+    
+    echo ""
+    echo "    (makeDesktopItem {"
+    echo "      name = \"$name\";"
+    echo "      desktopName = \"$display_name\";"
+    echo "      comment = \"$comment\";"
+    echo "      exec = \"$exec_cmd\";"
+    echo "      icon = \"$icon\";"
+    echo "      terminal = false;"
+    echo "      categories = [ $categories_array];"
+    
+    if [[ -n "$class_name" ]]; then
+        echo "      startupWMClass = \"$class_name\";"
+    fi
+    
+    if [[ -n "$mime_types" ]]; then
+        echo "      mimeTypes = [ $mime_array];"
+    fi
+    
+    echo "      startupNotify = true;"
+    echo "    })"
+}
+
+# Function to validate URL
+validate_url() {
+    local url="$1"
+    
+    # Add https:// if no protocol specified
+    if [[ ! "$url" =~ ^https?:// ]]; then
+        url="https://$url"
+    fi
+    
+    # Basic validation
+    if [[ ! "$url" =~ ^https?://[^/]+.*$ ]]; then
+        echo -e "${RED}Error: Invalid URL format: $url${NC}" >&2
+        exit 1
+    fi
+    
+    echo "$url"
+}
+
+# Main function
+main() {
+    local display_name=""
+    local url=""
+    local icon=""
+    local categories=""
+    local comment=""
+    local class_name=""
+    local extra_flags=""
+    local mime_types=""
+    local write_file=false
+    
+    # Parse arguments
+    if [[ $# -lt 2 ]]; then
+        usage
+        exit 1
+    fi
+    
+    display_name="$1"
+    url="$2"
+    shift 2
+    
+    # Parse options
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --icon=*)
+                icon="${1#*=}"
+                ;;
+            --categories=*)
+                categories="${1#*=}"
+                ;;
+            --comment=*)
+                comment="${1#*=}"
+                ;;
+            --class=*)
+                class_name="${1#*=}"
+                ;;
+            --flags=*)
+                extra_flags="${1#*=}"
+                ;;
+            --mime=*)
+                mime_types="${1#*=}"
+                ;;
+            --write)
+                write_file=true
+                ;;
+            --help|-h)
+                usage
+                exit 0
+                ;;
+            *)
+                echo -e "${RED}Unknown option: $1${NC}" >&2
+                exit 1
+                ;;
+        esac
+        shift
+    done
+    
+    # Validate inputs
+    if [[ -z "$display_name" ]]; then
+        echo -e "${RED}Error: Display name is required${NC}" >&2
+        exit 1
+    fi
+    
+    if [[ -z "$url" ]]; then
+        echo -e "${RED}Error: URL is required${NC}" >&2
+        exit 1
+    fi
+    
+    # Validate and normalize URL
+    url=$(validate_url "$url")
+    
+    # Generate name
+    local name
+    name=$(generate_name "$display_name")
+    
+    # Get suggestions
+    local suggestions
+    suggestions=$(suggest_defaults "$url")
+    local suggested_icon
+    suggested_icon=$(echo "$suggestions" | cut -d'|' -f1)
+    local suggested_categories
+    suggested_categories=$(echo "$suggestions" | cut -d'|' -f2)
+    local suggested_mime
+    suggested_mime=$(echo "$suggestions" | cut -d'|' -f3)
+    
+    # Apply defaults
+    icon="${icon:-$suggested_icon}"
+    categories="${categories:-$suggested_categories}"
+    class_name="${class_name:-$(echo "$display_name" | tr -d ' -')}"
+    mime_types="${mime_types:-$suggested_mime}"
+    comment="${comment:-Access $display_name in a standalone web application}"
+    
+    # Format exec command
+    local exec_cmd
+    exec_cmd=$(format_exec_command "$url" "$extra_flags" "$class_name")
+    
+    echo -e "${GREEN}✓ Generated webapp configuration for '$display_name'${NC}"
+    echo -e "${BLUE}  Name: $name${NC}"
+    echo -e "${BLUE}  URL: $url${NC}"
+    echo -e "${BLUE}  Icon: $icon${NC}"
+    echo -e "${BLUE}  Categories: $categories${NC}"
+    echo -e "${BLUE}  Class: $class_name${NC}"
+    
+    # Generate desktop item
+    local desktop_item
+    desktop_item=$(generate_desktop_item "$name" "$display_name" "$url" "$icon" "$categories" "$comment" "$exec_cmd" "$class_name" "$mime_types")
+    
+    echo -e "\n${YELLOW}Generated makeDesktopItem:${NC}"
+    echo "----------------------------------------"
+    echo "$desktop_item"
+    
+    if [[ "$write_file" == true ]]; then
+        # Check if webapps.nix exists
+        if [[ ! -f "$WEBAPPS_FILE" ]]; then
+            echo -e "${RED}Error: $WEBAPPS_FILE not found${NC}" >&2
+            exit 1
+        fi
+        
+        # Create backup
+        cp "$WEBAPPS_FILE" "$WEBAPPS_FILE.backup"
+        
+        # Find insertion point (before final ];)
+        local temp_file
+        temp_file=$(mktemp)
+        
+        # Insert the new desktop item before the final ];
+        # Process the file line by line
+        while IFS= read -r line; do
+            if [[ "$line" == "  ];" ]]; then
+                # Insert the new desktop item before the closing bracket
+                echo "$desktop_item" >> "$temp_file"
+                echo "$line" >> "$temp_file"
+            else
+                echo "$line" >> "$temp_file"
+            fi
+        done < "$WEBAPPS_FILE"
+        
+        # Replace original file
+        mv "$temp_file" "$WEBAPPS_FILE"
+        
+        echo -e "\n${GREEN}✓ Updated $WEBAPPS_FILE${NC}"
+        echo -e "${GREEN}✓ Backup saved as $WEBAPPS_FILE.backup${NC}"
+        echo -e "${YELLOW}✓ Run 'sudo nixos-rebuild switch' to apply changes${NC}"
+    else
+        echo -e "\n${YELLOW}To apply changes:${NC}"
+        echo -e "1. Add the above configuration to ${WEBAPPS_FILE}"
+        echo -e "2. Run: ${BLUE}sudo nixos-rebuild switch${NC}"
+        echo -e "\nOr run with ${BLUE}--write${NC} flag to update automatically"
+    fi
+}
+
+# Run main function
+main "$@"
